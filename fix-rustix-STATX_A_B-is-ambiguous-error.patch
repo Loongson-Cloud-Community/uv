@@ -1,0 +1,67 @@
+From 31b15f4cad2acf2a5e1137c059018ae9a2a5ebdc Mon Sep 17 00:00:00 2001
+From: Weijie Wang <wangweijie@loongson>
+Date: Tue, 26 Aug 2025 12:44:37 +0000
+Subject: [PATCH] fix STATX_A_B is ambiguous error
+
+---
+ build.rs              | 11 +++++++++++
+ src/backend/libc/c.rs |  4 ++--
+ 2 files changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/build.rs b/build.rs
+index d2d6541..aa1b55c 100644
+--- a/build.rs
++++ b/build.rs
+@@ -54,6 +54,9 @@ fn main() {
+     // libc FFI calls, so if we're running under miri, use the libc backend.
+     let miri = var("CARGO_CFG_MIRI").is_ok();
+ 
++    // skip rustix statx_flags mod.
++    let musl_geq_1_2_3 = var("RUST_LIBC_MUSL_GEQ_1_2_3").is_ok();
++
+     // If experimental features are enabled, auto-detect and use available
+     // features.
+     if rustc_dep_of_std {
+@@ -168,6 +171,11 @@ fn main() {
+         use_feature("fix_y2038");
+     }
+ 
++    // Feature needed for building.
++    if musl_geq_1_2_3 {
++        use_feature("musl_geq_1_2_3");
++    }
++
+     println!("cargo:rerun-if-env-changed=CARGO_CFG_RUSTIX_USE_EXPERIMENTAL_ASM");
+     println!("cargo:rerun-if-env-changed=CARGO_CFG_RUSTIX_USE_LIBC");
+ 
+@@ -176,6 +184,9 @@ fn main() {
+     println!("cargo:rerun-if-env-changed=CARGO_FEATURE_USE_LIBC");
+     println!("cargo:rerun-if-env-changed=CARGO_FEATURE_RUSTC_DEP_OF_STD");
+     println!("cargo:rerun-if-env-changed=CARGO_CFG_MIRI");
++
++    println!("cargo:rustc-check-cfg=cfg(musl_geq_1_2_3)");
++    println!("cargo:rerun-if-env-changed=RUST_LIBC_MUSL_GEQ_1_2_3");
+ }
+ 
+ fn use_static_assertions() -> bool {
+diff --git a/src/backend/libc/c.rs b/src/backend/libc/c.rs
+index 2f737c2..b46da43 100644
+--- a/src/backend/libc/c.rs
++++ b/src/backend/libc/c.rs
+@@ -489,7 +489,7 @@ pub(super) use readwrite_pv64v2::{preadv64v2 as preadv2, pwritev64v2 as pwritev2
+ #[cfg(feature = "fs")]
+ #[cfg(all(
+     linux_like,
+-    not(any(target_os = "android", target_os = "emscripten", target_env = "gnu"))
++    not(any(target_os = "android", target_os = "emscripten", target_env = "gnu", all(target_env = "musl", musl_geq_1_2_3)))
+ ))]
+ mod statx_flags {
+     pub(crate) use linux_raw_sys::general::{
+@@ -507,7 +507,7 @@ mod statx_flags {
+ #[cfg(feature = "fs")]
+ #[cfg(all(
+     linux_like,
+-    not(any(target_os = "android", target_os = "emscripten", target_env = "gnu"))
++    not(any(target_os = "android", target_os = "emscripten", target_env = "gnu", all(target_env = "musl", musl_geq_1_2_3)))
+ ))]
+ pub(crate) use statx_flags::*;
