@@ -1,0 +1,19 @@
+From: Weijie Wang <wangweijie@loongson>
+Date: Wed, 27 Aug 2025 01:30:41 +0000
+Subject: [PATCH] uv Cargo.toml add rustix vendor
+
+---
+ Cargo.toml | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Cargo.toml b/Cargo.toml
+index e949b7f..4970823 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -320,5 +320,6 @@ codegen-units = 1
+ inherits = "release"
+
+ [patch.crates-io]
++rustix = { package = "rustix", version = "1.0.8", path = "vendor/rustix" }
+ reqwest-middleware = { git = "https://github.com/astral-sh/reqwest-middleware", rev = "ad8b9d332d1773fde8b4cd008486de5973e0a3f8" }
+ reqwest-retry = { git = "https://github.com/astral-sh/reqwest-middleware", rev = "ad8b9d332d1773fde8b4cd008486de5973e0a3f8" }
